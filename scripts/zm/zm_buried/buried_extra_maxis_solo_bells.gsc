@@ -2,7 +2,7 @@
 
 main()
 {
-	replaceFunc( maps\mp\zm_buried_sq_ip::sq_bp_set_current_bulb, ::sq_bp_set_current_bulb );
+	replaceFunc( maps\mp\zm_buried_sq_ip::sq_bp_set_current_bulb, ::sq_bp_set_current_bulb, 1 );
 }
 
 init()
