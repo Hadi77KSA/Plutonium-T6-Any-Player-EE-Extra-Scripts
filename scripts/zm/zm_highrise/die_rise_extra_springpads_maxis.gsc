@@ -1,17 +1,16 @@
 #include common_scripts\utility;
-#include maps\mp\zm_highrise_sq_pts;
-#include maps\mp\zombies\_zm_equip_springpad;
+#include maps\mp\zombies\_zm_equipment;
 #include maps\mp\zombies\_zm_utility;
 
 main()
 {
-	replaceFunc( ::cleanupoldspringpad, ::custom_cleanupoldspringpad );
-	replaceFunc( ::pts_springpad_waittill_removed, ::custom_pts_springpad_waittill_removed );
+	replaceFunc( maps\mp\zombies\_zm_equip_springpad::cleanupoldspringpad, ::cleanupoldspringpad );
+	replaceFunc( maps\mp\zm_highrise_sq_pts::pts_springpad_waittill_removed, ::pts_springpad_waittill_removed );
 }
 
 init()
 {
-	level thread custom_ignore_springpads_during_pts_2();
+	thread ignore_equipment();
 	thread onPlayerConnect();
 }
 
@@ -20,31 +19,40 @@ onPlayerConnect()
 	for (;;)
 	{
 		level waittill( "connected", player );
-		player thread display_mod_message();
-		player thread equipment_placed_listen();
+		player thread msg();
+		player thread watchspringpaduse();
 		player thread onPlayerDisconnect();
 	}
 }
 
-display_mod_message()
+msg()
 {
 	self endon( "disconnect" );
 	flag_wait( "initial_players_connected" );
 	self iPrintLn( "^3Any Player EE Mod ^5Die Rise Maxis Extra Trample Steams" );
 }
 
+//after a player disconnects during the Maxis Trample Steam step making the number of players be less than 4 or if it already was less than 4 and depending on if not enough Trample Steams were on symbols and in inventories, gives the players not carrying Trample Steams the ability to pick up new Trample Steams
 onPlayerDisconnect()
 {
 	level endon( "end_game" );
 	self waittill( "disconnect" );
-	level thread refresh_players_springpads();
+
+	for ( i = 0; i < level.players.size; i++ )
+	{
+		equipment = level.players[i] get_player_equipment();
+
+		if ( !isdefined( equipment ) || equipment != level.springpad_name )
+		{
+			level.players[i] thread dropspringpad();
+		}
+	}
 }
 
 //makes zombies ignore Trample Steams placed during Maxis Trample Steam step if number of players was less than 4 when the Ballistic Knife step was completed
-custom_ignore_springpads_during_pts_2()
+ignore_equipment()
 {
 	level endon( "end_game" );
-	self endon( "disconnect" );
 	flag_wait( "initial_blackscreen_passed" );
 
 	if ( flag( "sq_branch_complete" ) || is_true( level.maxcompleted ) )
@@ -59,7 +67,7 @@ custom_ignore_springpads_during_pts_2()
 	arrayRemoveValue( level.equipment_ignored_by_zombies, level.springpad_name );
 }
 
-equipment_placed_listen()
+watchspringpaduse()
 {
 	level endon( "end_game" );
 	self endon( "disconnect" );
@@ -69,95 +77,46 @@ equipment_placed_listen()
 		self waittill( "equipment_placed", weapon, weapname );
 
 		if ( weapname == level.springpad_name )
-			self custom_quick_release();
+			self dropspringpad();
 	}
 }
 
 //after the player places down a Trample Steam during the Maxis Trample Steam step while there are less than 4 players and depending on if not enough Trample Steams were on symbols and in inventories, gives the player the ability to pick up a new Trample Steam
-custom_quick_release()
+dropspringpad()
 {
-	if ( getPlayers().size >= 4 || flag( "sq_branch_complete" ) || is_true( level.maxcompleted ) || !is_true( level._zombie_sidequests[ "sq_2" ].stages[ "ssp_2" ].completed ) || is_true( level._zombie_sidequests[ "sq_2" ].stages[ "pts_2" ].completed ) )
+	if ( getPlayers().size >= 4 || flag( "sq_branch_complete" ) || is_true( level.maxcompleted ) || !is_true( level._zombie_sidequests["sq_2"].stages["ssp_2"].completed ) || is_true( level._zombie_sidequests["sq_2"].stages["pts_2"].completed ) )
 		return;
 
+	self endon( "disconnect" );
 	wait 0.05;
-	a_spots = getstructarray( "pts_lion", "targetname" );
-	n_deployed_springpads_on_symbols = 0;
+	is_springpad_in_place = 0;
 
-	foreach ( s_spot in a_spots )
+	foreach ( s_spot in getstructarray( "pts_lion", "targetname" ) )
 	{
 		if ( isdefined( s_spot.springpad ) )
-			n_deployed_springpads_on_symbols++;
+			is_springpad_in_place++;
 	}
 
-	n_springpads_in_inventory = 0;
+	is_player_equipment = 0;
 
-	foreach ( player in getPlayers() )
+	for ( i = 0; i < level.players.size; i++ )
 	{
-		equipment = player get_player_equipment();
+		equipment = level.players[i] get_player_equipment();
 
 		if ( isdefined( equipment ) && equipment == level.springpad_name )
-			n_springpads_in_inventory++;
+			is_player_equipment++;
 	}
 
-	n_total_springpads_ready_for_symbols = n_deployed_springpads_on_symbols + n_springpads_in_inventory;
+	is_clear = is_springpad_in_place + is_player_equipment;
 
-	if ( n_total_springpads_ready_for_symbols < 4 )
+	if ( is_clear < 4 )
 		self equipment_take( level.springpad_name );
 }
 
-
-//after a player disconnects during the Maxis Trample Steam step making the number of players be less than 4 or if it already was less than 4 and depending on if not enough Trample Steams were on symbols and in inventories, gives the players not carrying Trample Steams the ability to pick up new Trample Steams
-refresh_players_springpads()
-{
-	if ( flag( "sq_branch_complete" ) || is_true( level.maxcompleted ) || !is_true( level._zombie_sidequests[ "sq_2" ].stages[ "ssp_2" ].completed ) || is_true( level._zombie_sidequests[ "sq_2" ].stages[ "pts_2" ].completed ) )
-		return;
-
-	wait 0.05;
-	a_spots = getstructarray( "pts_lion", "targetname" );
-	n_deployed_springpads_on_symbols = 0;
-
-	foreach ( s_spot in a_spots )
-	{
-		if ( isdefined( s_spot.springpad ) )
-			n_deployed_springpads_on_symbols++;
-	}
-
-	n_springpads_in_inventory = 0;
-
-	foreach ( player in getPlayers() )
-	{
-		equipment = player get_player_equipment();
-
-		if ( isdefined( equipment ) && equipment == level.springpad_name )
-			n_springpads_in_inventory++;
-	}
-
-	n_total_springpads_ready_for_symbols = n_deployed_springpads_on_symbols + n_springpads_in_inventory;
-
-	if ( getPlayers().size < 4 && n_total_springpads_ready_for_symbols < 4 )
-	{
-		foreach ( player in getPlayers() )
-		{
-			equipment = player get_player_equipment();
-
-			if ( !isdefined( equipment ) || equipment != level.springpad_name )
-			{
-				if ( n_total_springpads_ready_for_symbols < 4 )
-				{
-					n_total_springpads_ready_for_symbols++;
-					player equipment_take( level.springpad_name );
-				}
-				else
-					break;
-			}
-		}
-	}
-}
-
 //keeps old Trample Steam(s) in place during Maxis balls step if number of players is less than 4
-custom_cleanupoldspringpad()
+cleanupoldspringpad()
 {
-	if ( getPlayers().size >= 4 || !is_true( level._zombie_sidequests[ "sq_2" ].stages[ "ssp_2" ].completed ) || is_true( level._zombie_sidequests[ "sq_2" ].stages[ "pts_2" ].completed ) )
+	if ( getPlayers().size >= 4 || !is_true( level._zombie_sidequests["sq_2"].stages["ssp_2"].completed ) || is_true( level._zombie_sidequests["sq_2"].stages["pts_2"].completed ) )
 	{
 		if ( isdefined( self.buildablespringpad ) )
 		{
@@ -180,11 +139,11 @@ custom_cleanupoldspringpad()
 }
 
 //if the number of players is less than 4 and a player picks up a Trample Steam, doesn't undefine the players' Trample Steams that are on lion symbols for the Maxis Trample Steam step
-custom_pts_springpad_waittill_removed( m_springpad )
+pts_springpad_waittill_removed( m_springpad )
 {
-	while ( !is_true( level._zombie_sidequests[ "sq_2" ].stages[ "pts_2" ].completed ) )
+	while ( !is_true( level._zombie_sidequests["sq_2"].stages["pts_2"].completed ) )
 	{
-		if ( ( getPlayers().size >= 4 || !is_true( level._zombie_sidequests[ "sq_2" ].stages[ "ssp_2" ].completed ) ) && !is_true( endons_set ) )
+		if ( ( getPlayers().size >= 4 || !is_true( level._zombie_sidequests["sq_2"].stages["ssp_2"].completed ) ) && !is_true( endons_set ) )
 		{
 			m_springpad endon( "delete" );
 			m_springpad endon( "death" );
@@ -193,7 +152,7 @@ custom_pts_springpad_waittill_removed( m_springpad )
 
 		msg = self waittill_any_return( "death", "disconnect", "equip_springpad_zm_taken", "equip_springpad_zm_pickup" );
 
-		if ( getPlayers().size >= 4 || !is_true( level._zombie_sidequests[ "sq_2" ].stages[ "ssp_2" ].completed ) || ( msg != "equip_springpad_zm_taken" && msg != "equip_springpad_zm_pickup" ) )
+		if ( getPlayers().size >= 4 || !is_true( level._zombie_sidequests["sq_2"].stages["ssp_2"].completed ) || ( msg != "equip_springpad_zm_taken" && msg != "equip_springpad_zm_pickup" ) )
 			break;
 	}
 }
