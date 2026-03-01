@@ -1,13 +1,10 @@
+#include common_scripts\utility;
 #include maps\mp\zm_buried_sq_ip;
-
-main()
-{
-	replaceFunc( maps\mp\zm_buried_sq_ip::sq_bp_set_current_bulb, ::sq_bp_set_current_bulb, 1 );
-}
 
 init()
 {
 	thread onPlayerConnect();
+	thread sq_bp_start_puzzle_lights();
 }
 
 onPlayerConnect()
@@ -22,32 +19,44 @@ onPlayerConnect()
 msg()
 {
 	self endon( "disconnect" );
-	common_scripts\utility::flag_wait( "initial_players_connected" );
+	flag_wait( "initial_players_connected" );
 	self iPrintLn( "^3Any Player EE Mod ^5Buried Maxis Solo Bells Auto-Complete" );
 }
 
-sq_bp_set_current_bulb( str_tag )
+sq_bp_start_puzzle_lights()
 {
-	level endon( "sq_bp_correct_button" );
+	level endon( "sq_ip_over" );
+	level waittill( "sq" + "_" + "ip" + "_started" );
+
+	if ( flag( "sq_is_max_tower_built" ) )
+	{
+		while ( !flag( "sq_ip_puzzle_complete" ) )
+		{
+			while ( !isdefined( level.t_start ) )
+			{
+				wait 0.05;
+			}
+
+			level.t_start waittill( "trigger" );
+			wait 0.1;
+			sq_bp_button_pressed();
+		}
+	}
+}
+
+sq_bp_button_pressed()
+{
+	level endon( "sq_ip_over" );
 	level endon( "sq_bp_wrong_button" );
 	level endon( "sq_bp_timeout" );
 
-	if ( isdefined( level.m_sq_bp_active_light ) )
-		level.str_sq_bp_active_light = "";
-
-	level.m_sq_bp_active_light = sq_bp_light_on( str_tag, "yellow" );
-	level.str_sq_bp_active_light = str_tag;
-
-	if ( getPlayers().size == 1 )
+	if ( level.players.size == 1 )
 	{
-		wait 1;
-		sq_bp_light_on( str_tag, "green" );
-		level notify( "sq_bp_correct_button" );
-	}
-
-	if ( getPlayers().size > 2 )
-	{
-		wait 10;
-		level notify( "sq_bp_timeout" );
+		for (;;)
+		{
+			wait 1;
+			sq_bp_light_on( level.str_sq_bp_active_light, "green" );
+			level notify( "sq_bp_correct_button" );
+		}
 	}
 }
