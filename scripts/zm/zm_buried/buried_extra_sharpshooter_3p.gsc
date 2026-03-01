@@ -30,7 +30,7 @@ msg()
 
 zmb_sq_target_flip()
 {
-	switch ( getPlayers().size )
+	switch ( level.players.size )
 	{
 		case 1:
 			level.zmb_sq_target_flip = 64; // Total (84) - ( Candy Shop (20) )
@@ -52,12 +52,15 @@ ows_target_delete_timer()
 	self endon( "death" );
 	wait 4;
 	self notify( "ows_target_timeout" );
+	flag_set( "sq_ows_target_missed" );
 	level.zmb_sq_target_flip--;
 
-	if ( level.zmb_sq_target_flip < 0 || ( getPlayers().size == 3 && level.zmb_sq_target_flip > 4 && level.zmb_sq_target_flip < 23 ) ) //makes the step on 3p be optional between 3 locations and all locations.
-		flag_set( "sq_ows_target_missed" );
-	else if ( getPlayers().size == 3 && level.zmb_sq_target_flip >= 0 && level.zmb_sq_target_flip <= 4 ) //clears the flag in the case that the players choose to only shoot the targets from 3 locations instead of all.
+	//makes the step on 3p be optional between 3 locations and all locations.
+	if ( level.zmb_sq_target_flip >= 0 && ( level.players.size != 3 || level.zmb_sq_target_flip <= 4 ) ) //clears the flag in the case that the number of missed targets is within the permitted limit
+	{
+		waittillframeend;
 		flag_clear( "sq_ows_target_missed" );
+	}
 
 /#
 	iprintlnbold( "missed target! step failed. target @ " + self.origin );
