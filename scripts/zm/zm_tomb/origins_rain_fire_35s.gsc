@@ -1,3 +1,5 @@
+#include common_scripts\utility;
+
 main()
 {
 	func = getFunction( "maps/mp/zm_tomb_ee_main_step_3", "fire_link_cooldown" );
