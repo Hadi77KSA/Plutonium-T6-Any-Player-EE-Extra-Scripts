@@ -25,3 +25,7 @@ Minimum number of required targets:
 - 2p: 39 targets (Candy Shop + Saloon (19))
 - 3p: the players can choose it to be either 61 targets (Candy Shop + Saloon + Barn (22)) or all targets. Shooting more than 65 targets on an attempt makes the step switch to check for if all targets are hit on that attempt.
 - Otherwise: all 84 targets
+
+### Origins
+#### Step 3: Rain Fire
+Makes the button timeout 35 seconds, similar to BO3.
