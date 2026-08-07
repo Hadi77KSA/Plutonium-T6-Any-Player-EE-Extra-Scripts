@@ -10,6 +10,27 @@ main()
 	}
 }
 
+init()
+{
+	thread onPlayerConnect();
+}
+
+onPlayerConnect()
+{
+	for (;;)
+	{
+		level waittill( "connected", player );
+		player thread msg();
+	}
+}
+
+msg()
+{
+	self endon( "disconnect" );
+	flag_wait( "initial_players_connected" );
+	self iPrintLn( "^3Any Player EE Mod ^5Origins Rain Fire 35s" );
+}
+
 fire_link_cooldown( t_button )
 {
 	level notify( "fire_link_cooldown" );
