@@ -38,7 +38,12 @@ sq_bp_start_puzzle_lights()
 			}
 
 			level.t_start waittill( "trigger" );
-			wait 0.1;
+
+			while ( !isdefined( level.str_sq_bp_active_light ) || level.str_sq_bp_active_light == "" )
+			{
+				wait 0.1;
+			}
+
 			sq_bp_button_pressed();
 		}
 	}
